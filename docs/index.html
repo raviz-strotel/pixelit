@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
 
-<link rel="stylesheet" href="assets/style.min.css">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>LEGO Mosaic Builder</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" rel="stylesheet"/>
 
 <style>
 
@@ -22,30 +25,19 @@ margin:auto;
 padding:40px 20px;
 }
 
-h1{
-font-size:32px;
-margin-bottom:10px;
-}
-
 .controls{
-display:flex;
-justify-content:center;
-gap:15px;
-flex-wrap:wrap;
 margin-bottom:20px;
-}
-
-.inputbtn{
-background:#1e1e24;
-border-radius:8px;
-padding:10px;
-cursor:pointer;
 }
 
 canvas{
 max-width:100%;
+background:black;
 border-radius:12px;
-background:#000;
+}
+
+#editorImage{
+max-width:100%;
+margin-bottom:20px;
 }
 
 </style>
@@ -57,35 +49,102 @@ background:#000;
 <div class="builder">
 
 <h1>Create Your LEGO Mosaic</h1>
-<p>Upload an image and instantly convert it into LEGO-style pixel art.</p>
 
-<div class="controls">
+<input type="file" id="upload">
 
-<label class="inputbtn">
-Upload Image
-<input type="file" id="pixlInput" hidden>
-</label>
+<br><br>
 
-<label class="inputbtn">
-Block Size
-<span id="blockvalue">7</span>
-<input type="range" value="7" min="1" max="50" id="blocksize">
-</label>
-
-<button id="downloadimage" class="inputbtn">
-Download Image
-</button>
-
-</div>
+<img id="editorImage">
 
 <canvas id="pixelitcanvas"></canvas>
 
 </div>
 
-<img src="assets/sky.jpg" id="pixelitimg" style="display:none">
+<img id="pixelitimg" style="display:none">
 
 <script src="js/pixelit.min.js"></script>
-<script src="js/main.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+
+<script>
+
+const editorImage = document.getElementById("editorImage");
+const hiddenImg = document.getElementById("pixelitimg");
+const canvas = document.getElementById("pixelitcanvas");
+
+const LEGO_PALETTE = [
+[0,0,0],
+[255,255,255],
+[214,0,28],
+[0,85,191],
+[242,205,55],
+[160,165,169],
+[24,70,50],
+[138,110,95]
+];
+
+let cropper;
+
+const px = new pixelit({
+from:hiddenImg,
+to:canvas
+});
+
+function renderLive(){
+
+if(!cropper) return;
+
+const cropped = cropper.getCroppedCanvas({
+width:512,
+height:512
+});
+
+hiddenImg.src = cropped.toDataURL();
+
+hiddenImg.onload = () => {
+
+px.draw();
+
+const TARGET = 32;
+const size = Math.max(canvas.width, canvas.height);
+
+px.setScale(Math.floor(size/TARGET));
+
+px.pixelate();
+
+px.setpalette(LEGO_PALETTE);
+
+px.convertpalette();
+
+};
+
+}
+
+document.getElementById("upload").addEventListener("change", e=>{
+
+const file = e.target.files[0];
+
+if(!file) return;
+
+editorImage.src = URL.createObjectURL(file);
+
+editorImage.onload = () => {
+
+if(cropper) cropper.destroy();
+
+cropper = new Cropper(editorImage,{
+aspectRatio:1,
+viewMode:1,
+dragMode:"move",
+autoCropArea:1,
+crop:()=> renderLive()
+});
+
+};
+
+});
+
+</script>
 
 </body>
+
 </html>
